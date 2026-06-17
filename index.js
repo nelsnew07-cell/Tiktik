@@ -156,25 +156,6 @@ async function createTicket(interaction, type, emoji) {
     components: [row]
   });
 
-  // leaderboard count
-  ticketCount.set(
-    interaction.user.id,
-    Number(ticketCount.get(interaction.user.id) || 0) + 1
-  );
-
-  if (typeof saveLeaderboard === "function") {
-    saveLeaderboard();
-  }
-
-  if (typeof updateLeaderboard === "function") {
-    updateLeaderboard();
-  }
-
-  return interaction.reply({
-    content: `Ticket created: ${channel}`,
-    ephemeral: true
-  });
-}
   // Send ticket message
   await channel.send({
     content: `<@${interaction.user.id}>`,
@@ -182,33 +163,28 @@ async function createTicket(interaction, type, emoji) {
     components: [row]
   });
 
-  // Update leaderboard
+  // Update leaderboard count
   ticketCount.set(
     interaction.user.id,
     Number(ticketCount.get(interaction.user.id) || 0) + 1
   );
 
+  // Save leaderboard data
   if (typeof saveLeaderboard === "function") {
     saveLeaderboard();
   }
 
+  // Update leaderboard display
   if (typeof updateLeaderboard === "function") {
     updateLeaderboard();
   }
 
+  // Reply to user (IMPORTANT: only once and inside function)
   return interaction.reply({
     content: `Ticket created: ${channel}`,
     ephemeral: true
   });
 }
-
-  // Send ticket message
-  await channel.send({
-    content: `<@${interaction.user.id}>`,
-    embeds: [embed],
-    components: [row]
-  });
-
   // Update leaderboard count
   ticketCount.set(
     interaction.user.id,
