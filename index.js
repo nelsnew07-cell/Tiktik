@@ -110,64 +110,76 @@ client.once("ready", async () => {
 
 /* ================= CREATE TICKET ================= */
 async function createTicket(interaction, type, emoji) {
+  try {
 
-  const channel = await interaction.guild.channels.create({
-    name: `${type}-${interaction.user.username}`,
-    parent: ticketCategoryId,
-    permissionOverwrites: [
-      {
-        id: interaction.guild.id,
-        deny: [PermissionsBitField.Flags.ViewChannel]
-      },
-      {
-        id: interaction.user.id,
-        allow: [
-          PermissionsBitField.Flags.ViewChannel,
-          PermissionsBitField.Flags.SendMessages,
-          PermissionsBitField.Flags.ReadMessageHistory
-        ]
-      },
-      {
-        id: staffRoleId,
-        allow: [
-          PermissionsBitField.Flags.ViewChannel,
-          PermissionsBitField.Flags.SendMessages,
-          PermissionsBitField.Flags.ReadMessageHistory
-        ]
-      }
-    ]
-  });
+    const channel = await interaction.guild.channels.create({
+      name: `${type}-${interaction.user.username}`,
+      parent: ticketCategoryId,
+      permissionOverwrites: [
+        {
+          id: interaction.guild.id,
+          deny: [PermissionsBitField.Flags.ViewChannel]
+        },
+        {
+          id: interaction.user.id,
+          allow: [
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.ReadMessageHistory
+          ]
+        },
+        {
+          id: staffRoleId,
+          allow: [
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.ReadMessageHistory
+          ]
+        }
+      ]
+    });
 
-  const embed = new EmbedBuilder()
-    .setTitle(`${emoji} ${type.toUpperCase()} TICKET`)
-    .setDescription("Please wait for staff assistance.")
-    .setColor("Green");
+    const embed = new EmbedBuilder()
+      .setTitle(`${emoji} ${type.toUpperCase()} TICKET`)
+      .setDescription("Please wait for staff assistance.")
+      .setColor("Green");
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("close_ticket")
-      .setLabel("Close Ticket")
-      .setStyle(ButtonStyle.Danger)
-  );
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("close_ticket")
+        .setLabel("Close Ticket")
+        .setStyle(ButtonStyle.Danger)
+    );
 
-  const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
+    const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
 
-  await channel.send({
-    content: `${roleMentions} | <@${interaction.user.id}>`,
-    embeds: [embed],
-    components: [row]
-  });
+    await channel.send({
+      content: `${roleMentions} | <@${interaction.user.id}>`,
+      embeds: [embed],
+      components: [row]
+    });
 
-  ticketCount.set(
-    interaction.user.id,
-    Number(ticketCount.get(interaction.user.id) || 0) + 1
-  );
+    ticketCount.set(
+      interaction.user.id,
+      Number(ticketCount.get(interaction.user.id) || 0) + 1
+    );
 
-  if (typeof saveLeaderboard === "function") saveLeaderboard();
-  if (typeof updateLeaderboard === "function") updateLeaderboard();
+    if (typeof saveLeaderboard === "function") saveLeaderboard();
+    if (typeof updateLeaderboard === "function") updateLeaderboard();
 
-  return interaction.reply({
-    content: `Ticket created: ${channel}`,
-    ephemeral: true
-  });
+    return await interaction.reply({
+      content: `Ticket created: ${channel}`,
+      ephemeral: true
+    });
+
+  } catch (err) {
+    console.error("Ticket Error:", err);
+
+    if (!interaction.replied) {
+      return interaction.reply({
+        content: "Failed to create ticket. Check bot permissions.",
+        ephemeral: true
+      });
     }
+  }
+}
