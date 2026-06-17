@@ -189,6 +189,7 @@ async function createTicket(interaction, type, emoji) {
 client.on("interactionCreate", async (interaction) => {
   try {
 
+    /* ================= SLASH COMMAND ================= */
     if (interaction.isChatInputCommand()) {
 
       if (interaction.commandName === "ticket") {
@@ -222,6 +223,7 @@ client.on("interactionCreate", async (interaction) => {
       }
     }
 
+    /* ================= BUTTONS ================= */
     if (interaction.isButton()) {
 
       if (interaction.customId === "support") {
@@ -236,23 +238,77 @@ client.on("interactionCreate", async (interaction) => {
         return await createTicket(interaction, "buy", "💰");
       }
 
+      /* ================= CLOSE TICKET ================= */
       if (interaction.customId === "close_ticket") {
-  await interaction.reply({
-    content: "Closing ticket and generating transcript...",
-    ephemeral: true
-  });
 
-  const html = await createTranscript(interaction.channel);
-  const buffer = Buffer.from(html, "utf8");
+        try {
 
-  // send transcript inside ticket before deleting
-  await interaction.channel.send({
-    content: "📄 Transcript generated below:",
-    files: [{
-      attachment: buffer,
-      name: `${interaction.channel.name}-transcript.html`
-    }]
-  });
+          await interaction.reply({
+            content: "Closing ticket and generating transcript...",
+            ephemeral: true
+          });
+
+          const html = await createTranscript(interaction.channel);
+          const buffer = Buffer.from(html, "utf8");
+
+          // send inside ticket
+          await interaction.channel.send({
+            content: "📄 Transcript generated below:",
+            files: [{
+              attachment: buffer,
+              name: `${interaction.channel.name}-transcript.html`
+            }]
+          });
+
+          // send to log channel
+          const logChannel = await client.channels.fetch(TRANSCRIPT_LOG_CHANNEL).catch(() => null);
+
+          if (logChannel) {
+            await logChannel.send({
+              content: `📁 Transcript for **${interaction.channel.name}**`,
+              files: [{
+                attachment: buffer,
+                name: `${interaction.channel.name}-transcript.html`
+              }]
+            });
+          }
+
+          setTimeout(() => {
+            interaction.channel.delete().catch(() => {});
+          }, 5000);
+
+        } catch (err) {
+          console.error("Transcript error:", err);
+
+          if (!interaction.replied) {
+            await interaction.reply({
+              content: "Failed to generate transcript.",
+              ephemeral: true
+            });
+          }
+        }
+
+        return;
+      }
+
+      /* ================= UNKNOWN BUTTON ================= */
+      return interaction.reply({
+        content: "Unknown button.",
+        ephemeral: true
+      });
+    }
+
+  } catch (err) {
+    console.error("Interaction Error:", err);
+
+    if (!interaction.replied) {
+      return interaction.reply({
+        content: "Something went wrong.",
+        ephemeral: true
+      });
+    }
+  }
+});
 
   // ALSO send to log channel
   const logChannel = await client.channels.fetch(TRANSCRIPT_LOG_CHANNEL).catch(() => null);
