@@ -17,13 +17,15 @@ const clientId = process.env.CLIENT_ID;
 const guildId = process.env.GUILD_ID;
 const staffRoleId = process.env.STAFFROLE_ID;
 
-/* ================= EXTRA STAFF ROLE IDS ================= */
+/* ================= TICKET CATEGORY ================= */
+const ticketCategoryId = "1470085301941702838";
+
+/* ================= STAFF ROLE IDS (NO BAD ROLE) ================= */
 const staffRoles = [
   "1474440409848479745",
   "1465642372405919785",
   "1465368284944928869",
-  "1462423468753817723",
-  "1462423337220444316"
+  "1462423468753817723"
 ];
 
 /* ================= CLIENT ================= */
@@ -66,11 +68,12 @@ client.once("ready", async () => {
   await registerCommands();
 });
 
-/* ================= CREATE TICKET FUNCTION ================= */
+/* ================= CREATE TICKET ================= */
 async function createTicket(interaction, type, emoji) {
 
   const channel = await interaction.guild.channels.create({
     name: `${type}-${interaction.user.username}`,
+    parent: ticketCategoryId,
     permissionOverwrites: [
       {
         id: interaction.guild.id,
@@ -97,7 +100,7 @@ async function createTicket(interaction, type, emoji) {
 
   const embed = new EmbedBuilder()
     .setTitle(`${emoji} ${type.toUpperCase()} TICKET`)
-    .setDescription("Please wait for a staff member.")
+    .setDescription("Please wait for staff assistance.")
     .setColor("Green");
 
   const row = new ActionRowBuilder().addComponents(
@@ -107,11 +110,9 @@ async function createTicket(interaction, type, emoji) {
       .setStyle(ButtonStyle.Danger)
   );
 
-  /* ================= ROLE PING MESSAGE ================= */
-  const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
-
+  /* ================= NO ROLE 690727923388383294 ANYMORE ================= */
   await channel.send({
-    content: `${roleMentions} | <@${interaction.user.id}>`,
+    content: `<@${interaction.user.id}>`,
     embeds: [embed],
     components: [row]
   });
@@ -159,7 +160,7 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
 
-  /* ---------- BUTTON HANDLERS ---------- */
+  /* ---------- BUTTONS ---------- */
   if (interaction.isButton()) {
 
     if (interaction.customId === "support") {
