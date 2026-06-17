@@ -11,6 +11,8 @@ import {
   SlashCommandBuilder
 } from "discord.js";
 
+import fs from "fs";
+
 /* ================= RAILWAY VARIABLES ================= */
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.CLIENT_ID;
@@ -23,8 +25,28 @@ const ticketCategoryId = "1470085301941702838";
 /* ================= LEADERBOARD ================= */
 const LEADERBOARD_CHANNEL_ID = "1490201609047773346";
 
-const ticketCount = new Map();
+const DATA_FILE = "./leaderboard.json";
+
+let ticketCount = new Map();
+
+if (fs.existsSync(DATA_FILE)) {
+  const data = JSON.parse(
+    fs.readFileSync(DATA_FILE, "utf8")
+  );
+
+  ticketCount = new Map(Object.entries(data));
+}
+
 let leaderboardMessageId = null;
+
+function saveLeaderboard() {
+  const data = Object.fromEntries(ticketCount);
+
+  fs.writeFileSync(
+    DATA_FILE,
+    JSON.stringify(data, null, 2)
+  );
+}
 
 /* ================= STAFF ROLE IDS (EXCEPT REMOVED ONE) ================= */
 const staffRoles = [
@@ -127,6 +149,32 @@ async function createTicket(interaction, type, emoji) {
       .setLabel("Close Ticket")
       .setStyle(ButtonStyle.Danger)
   );
+
+  // Send ticket message
+  await channel.send({
+    content: `<@${interaction.user.id}>`,
+    embeds: [embed],
+    components: [row]
+  });
+
+  // Update leaderboard count
+  ticketCount.set(
+    interaction.user.id,
+    Number(ticketCount.get(interaction.user.id) || 0) + 1
+  );
+
+  // Save to file (persistent leaderboard)
+  saveLeaderboard();
+
+  // Update leaderboard channel
+  updateLeaderboard();
+
+  // Reply to user
+  return interaction.reply({
+    content: `Ticket created: ${channel}`,
+    ephemeral: true
+  });
+}
 
   /* ================= ROLE MENTIONS (UPDATED) ================= */
   const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
