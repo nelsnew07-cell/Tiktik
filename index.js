@@ -20,6 +20,12 @@ const staffRoleId = process.env.STAFFROLE_ID;
 /* ================= CATEGORY ================= */
 const ticketCategoryId = "1470085301941702838";
 
+/* ================= LEADERBOARD ================= */
+const LEADERBOARD_CHANNEL_ID = "1490201609047773346";
+
+const ticketCount = new Map();
+let leaderboardMessageId = null;
+
 /* ================= STAFF ROLE IDS (EXCEPT REMOVED ONE) ================= */
 const staffRoles = [
   "1474440409848479745",
@@ -68,6 +74,16 @@ client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
   await registerCommands();
+
+  // Create/update leaderboard shortly after startup
+  setTimeout(() => {
+    updateLeaderboard();
+  }, 5000);
+
+  // Refresh leaderboard every 5 minutes
+  setInterval(() => {
+    updateLeaderboard();
+  }, 5 * 60 * 1000);
 });
 
 /* ================= CREATE TICKET ================= */
@@ -121,10 +137,89 @@ async function createTicket(interaction, type, emoji) {
     components: [row]
   });
 
-  return interaction.reply({
-    content: `Ticket created: ${channel}`,
-    ephemeral: true
-  });
+  ticketCount.set(
+  interaction.user.id,
+  (ticketCount.get(interaction.user.id) || 0) + 1
+);
+
+updateLeaderboard();
+
+return interaction.reply({
+  content: `Ticket created: ${channel}`,
+  ephemeral: true
+});
+}
+
+/* ================= LEADERBOARD SYSTEM ================= */
+async function updateLeaderboard() {
+  try {
+    const channel = await client.channels.fetch(
+      LEADERBOARD_CHANNEL_ID
+    );
+
+    const sorted = [...ticketCount.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    const medals = ["🥇", "🥈", "🥉"];
+
+    const description = sorted.length
+      ? sorted
+          .map((x, i) => {
+            const medal = medals[i] || `#${i + 1}`;
+            return `${medal} <@${x[0]}> — **${x[1]} tickets**`;
+          })
+          .join("\n")
+      : "No tickets yet.";
+
+    const embed = new EmbedBuilder()
+      .setTitle("🏆 Ticket Leaderboard")
+      .setDescription(description)
+      .setColor("Gold")
+      .setFooter({
+        text: "Auto-updates every 5 minutes"
+      })
+      .setTimestamp();
+
+    if (!leaderboardMessageId) {
+      const messages = await channel.messages.fetch({
+        limit: 20
+      });
+
+      const existing = messages.find(
+        m =>
+          m.author.id === client.user.id &&
+          m.embeds.length > 0 &&
+          m.embeds[0].title === "🏆 Ticket Leaderboard"
+      );
+
+      if (existing) {
+        leaderboardMessageId = existing.id;
+
+        await existing.edit({
+          embeds: [embed]
+        });
+
+        return;
+      }
+
+      const msg = await channel.send({
+        embeds: [embed]
+      });
+
+      leaderboardMessageId = msg.id;
+    } else {
+      const msg = await channel.messages.fetch(
+        leaderboardMessageId
+      );
+
+      await msg.edit({
+        embeds: [embed]
+      });
+    }
+  } catch (err) {
+    console.error("Leaderboard error:", err);
+  }
 }
 
 /* ================= INTERACTIONS ================= */
@@ -190,75 +285,3 @@ client.on("interactionCreate", async (interaction) => {
 
 /* ================= LOGIN ================= */
 client.login(token);
-/* ================= LEADERBOARD SYSTEM ================= */
-async function updateLeaderboard() {
-  try {
-    const channel = await client.channels.fetch(
-      LEADERBOARD_CHANNEL_ID
-    );
-
-    const sorted = [...ticketCount.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
-
-    const medals = ["🥇", "🥈", "🥉"];
-
-    const description = sorted.length
-      ? sorted
-          .map((x, i) => {
-            const medal = medals[i] || `#${i + 1}`;
-            return `${medal} <@${x[0]}> — **${x[1]} tickets**`;
-          })
-          .join("\n")
-      : "No tickets yet.";
-
-    const embed = new EmbedBuilder()
-      .setTitle("🏆 Ticket Leaderboard")
-      .setDescription(description)
-      .setColor("Gold")
-      .setFooter({
-        text: "Auto-updates every 5 minutes"
-      })
-      .setTimestamp();
-
-    if (!leaderboardMessageId) {
-      const messages = await channel.messages.fetch({
-        limit: 20
-      });
-
-      const existing = messages.find(
-        m =>
-          m.author.id === client.user.id &&
-          m.embeds.length > 0 &&
-          m.embeds[0].title ===
-            "🏆 Ticket Leaderboard"
-      );
-
-      if (existing) {
-        leaderboardMessageId = existing.id;
-
-        await existing.edit({
-          embeds: [embed]
-        });
-
-        return;
-      }
-
-      const msg = await channel.send({
-        embeds: [embed]
-      });
-
-      leaderboardMessageId = msg.id;
-    } else {
-      const msg = await channel.messages.fetch(
-        leaderboardMessageId
-      );
-
-      await msg.edit({
-        embeds: [embed]
-      });
-    }
-  } catch (err) {
-    console.error("Leaderboard error:", err);
-  }
-}
