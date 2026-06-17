@@ -17,6 +17,15 @@ const clientId = process.env.CLIENT_ID;
 const guildId = process.env.GUILD_ID;
 const staffRoleId = process.env.STAFFROLE_ID;
 
+/* ================= EXTRA STAFF ROLE IDS ================= */
+const staffRoles = [
+  "1474440409848479745",
+  "1465642372405919785",
+  "1465368284944928869",
+  "1462423468753817723",
+  "1462423337220444316"
+];
+
 /* ================= CLIENT ================= */
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
@@ -59,6 +68,7 @@ client.once("ready", async () => {
 
 /* ================= CREATE TICKET FUNCTION ================= */
 async function createTicket(interaction, type, emoji) {
+
   const channel = await interaction.guild.channels.create({
     name: `${type}-${interaction.user.username}`,
     permissionOverwrites: [
@@ -97,8 +107,11 @@ async function createTicket(interaction, type, emoji) {
       .setStyle(ButtonStyle.Danger)
   );
 
+  /* ================= ROLE PING MESSAGE ================= */
+  const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
+
   await channel.send({
-    content: `<@${interaction.user.id}>`,
+    content: `${roleMentions} | <@${interaction.user.id}>`,
     embeds: [embed],
     components: [row]
   });
@@ -146,7 +159,7 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
 
-  /* ---------- BUTTONS ---------- */
+  /* ---------- BUTTON HANDLERS ---------- */
   if (interaction.isButton()) {
 
     if (interaction.customId === "support") {
