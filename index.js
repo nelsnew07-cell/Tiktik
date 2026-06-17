@@ -177,26 +177,35 @@ async function createTicket(interaction, type, emoji) {
 }
 
   /* ================= ROLE MENTIONS (UPDATED) ================= */
-  const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
+const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
 
-  await channel.send({
-    content: `${roleMentions} | <@${interaction.user.id}>`,
-    embeds: [embed],
-    components: [row]
-  });
+await channel.send({
+  content: `${roleMentions} | <@${interaction.user.id}>`,
+  embeds: [embed],
+  components: [row]
+});
 
-  ticketCount.set(
+// 🎫 increase ticket count
+ticketCount.set(
   interaction.user.id,
-  (ticketCount.get(interaction.user.id) || 0) + 1
+  Number(ticketCount.get(interaction.user.id) || 0) + 1
 );
 
-updateLeaderboard();
+// 💾 save leaderboard data
+if (typeof saveLeaderboard === "function") {
+  saveLeaderboard();
+}
 
+// 📊 update leaderboard channel
+if (typeof updateLeaderboard === "function") {
+  updateLeaderboard();
+}
+
+// ✅ reply to user (IMPORTANT: must stay inside function)
 return interaction.reply({
   content: `Ticket created: ${channel}`,
   ephemeral: true
 });
-}
 
 /* ================= LEADERBOARD SYSTEM ================= */
 async function updateLeaderboard() {
