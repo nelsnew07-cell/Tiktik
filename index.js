@@ -11,11 +11,16 @@ import {
   SlashCommandBuilder
 } from "discord.js";
 
-/* ================= ENV ================= */
+/* ================= ENV CHECK ================= */
 const token = process.env.token;
 const clientId = process.env.clientId;
 const guildId = process.env.guildId;
 const staffRoleId = process.env.staffRoleId;
+
+/* 🔥 DEBUG: show if variables are missing */
+console.log("TOKEN:", token ? "OK" : "MISSING");
+console.log("CLIENT ID:", clientId ? "OK" : "MISSING");
+console.log("GUILD ID:", guildId ? "OK" : "MISSING");
 
 /* ================= CLIENT ================= */
 const client = new Client({
@@ -35,16 +40,16 @@ const rest = new REST({ version: "10" }).setToken(token);
 
 async function registerCommands() {
   try {
-    console.log("Registering slash commands...");
+    console.log("REGISTER STARTING...");
 
-    await rest.put(
+    const data = await rest.put(
       Routes.applicationGuildCommands(clientId, guildId),
       { body: commands }
     );
 
-    console.log("Slash commands registered successfully!");
+    console.log("REGISTER SUCCESS:", data);
   } catch (err) {
-    console.error("Command registration error:", err);
+    console.error("REGISTER ERROR:", err);
   }
 }
 
@@ -58,94 +63,52 @@ client.once("ready", async () => {
 /* ================= INTERACTIONS ================= */
 client.on("interactionCreate", async (interaction) => {
 
-  // /ticket
-  if (interaction.isChatInputCommand() && interaction.commandName === "ticket") {
+  if (interaction.isChatInputCommand()) {
+    if (interaction.commandName === "ticket") {
 
-    const embed = new EmbedBuilder()
-      .setTitle("🎫 Ticket System")
-      .setDescription("Click below to create a ticket.")
-      .setColor("Blue");
+      const embed = new EmbedBuilder()
+        .setTitle("Ticket System")
+        .setDescription("Click button below")
+        .setColor("Blue");
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("create_ticket")
-        .setLabel("Create Ticket")
-        .setStyle(ButtonStyle.Success)
-    );
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("create_ticket")
+          .setLabel("Create Ticket")
+          .setStyle(ButtonStyle.Success)
+      );
 
-    return interaction.reply({
-      embeds: [embed],
-      components: [row]
-    });
+      return interaction.reply({ embeds: [embed], components: [row] });
+    }
   }
 
-  // CREATE TICKET
   if (interaction.isButton() && interaction.customId === "create_ticket") {
 
-    const guild = interaction.guild;
-
-    const channel = await guild.channels.create({
+    const channel = await interaction.guild.channels.create({
       name: `ticket-${interaction.user.username}`,
-      type: 0,
       permissionOverwrites: [
         {
-          id: guild.id,
+          id: interaction.guild.id,
           deny: [PermissionsBitField.Flags.ViewChannel]
         },
         {
           id: interaction.user.id,
-          allow: [
-            PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages,
-            PermissionsBitField.Flags.ReadMessageHistory
-          ]
+          allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
         },
         {
           id: staffRoleId,
-          allow: [
-            PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages,
-            PermissionsBitField.Flags.ReadMessageHistory
-          ]
+          allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
         }
       ]
     });
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("close_ticket")
-        .setLabel("Close Ticket")
-        .setStyle(ButtonStyle.Danger)
-    );
-
-    const embed = new EmbedBuilder()
-      .setTitle("🎫 Ticket Opened")
-      .setDescription("A staff member will assist you soon.")
-      .setColor("Green");
-
-    await channel.send({
-      content: `<@${interaction.user.id}>`,
-      embeds: [embed],
-      components: [row]
-    });
+    await channel.send(`Ticket opened for <@${interaction.user.id}>`);
 
     return interaction.reply({
-      content: `Ticket created: ${channel}`,
+      content: `Created: ${channel}`,
       ephemeral: true
     });
   }
-
-  // CLOSE TICKET
-  if (interaction.isButton() && interaction.customId === "close_ticket") {
-
-    await interaction.reply("Closing ticket...");
-
-    setTimeout(() => {
-      interaction.channel.delete().catch(() => {});
-    }, 3000);
-  }
-
 });
 
-/* ================= LOGIN ================= */
 client.login(token);
