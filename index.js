@@ -180,9 +180,9 @@ client.on("interactionCreate", async (interaction) => {
           .setColor("Blue");
 
         const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId("support").setLabel("Support").setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId("report").setLabel("Report").setStyle(ButtonStyle.Danger),
-          new ButtonBuilder().setCustomId("buy").setLabel("Buy").setStyle(ButtonStyle.Success)
+          new ButtonBuilder().setCustomId("support").setLabel("📄-Apply").setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId("report").setLabel("👁‍🗨-Report").setStyle(ButtonStyle.Danger),
+          new ButtonBuilder().setCustomId("buy").setLabel("🛒-Buy").setStyle(ButtonStyle.Success)
         );
 
         return interaction.reply({ embeds: [embed], components: [row] });
