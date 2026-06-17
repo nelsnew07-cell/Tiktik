@@ -1,7 +1,6 @@
 import {
   Client,
   GatewayIntentBits,
-  Partials,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
@@ -12,63 +11,84 @@ import {
   SlashCommandBuilder
 } from "discord.js";
 
-import config from "./config.json" assert { type: "json" };
+/* ================= ENV VARIABLES ================= */
+const token = process.env.token;
+const clientId = process.env.clientId;
+const guildId = process.env.guildId;
+const staffRoleId = process.env.staffRoleId;
 
+/* ================= CLIENT ================= */
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
-  partials: [Partials.Channel]
+  intents: [GatewayIntentBits.Guilds]
 });
 
-client.once("ready", () => {
-  console.log(`Logged in as ${client.user.tag}`);
-});
-
-/* ---------------- REGISTER COMMAND ---------------- */
+/* ================= SLASH COMMAND ================= */
 const commands = [
   new SlashCommandBuilder()
     .setName("ticket")
-    .setDescription("Send ticket panel")
+    .setDescription("Open ticket panel")
     .toJSON()
 ];
 
-const rest = new REST({ version: "10" }).setToken(config.token);
+/* ================= REGISTER COMMANDS ================= */
+const rest = new REST({ version: "10" }).setToken(token);
 
-await rest.put(
-  Routes.applicationGuildCommands(config.clientId, config.guildId),
-  { body: commands }
-);
+async function registerCommands() {
+  try {
+    console.log("Registering slash commands...");
 
-/* ---------------- INTERACTIONS ---------------- */
-client.on("interactionCreate", async (interaction) => {
-
-  // 🎫 Ticket Panel
-  if (interaction.isChatInputCommand() && interaction.commandName === "ticket") {
-
-    const embed = new EmbedBuilder()
-      .setTitle("🎫 Support Tickets")
-      .setDescription("Click below to create a ticket")
-      .setColor("Blue");
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("create_ticket")
-        .setLabel("Create Ticket")
-        .setStyle(ButtonStyle.Success)
+    await rest.put(
+      Routes.applicationGuildCommands(clientId, guildId),
+      { body: commands }
     );
 
-    return interaction.reply({
-      embeds: [embed],
-      components: [row]
-    });
+    console.log("Slash commands registered successfully!");
+  } catch (err) {
+    console.error("Command registration failed:", err);
+  }
+}
+
+/* ================= BOT READY ================= */
+client.once("ready", async () => {
+  console.log(`Logged in as ${client.user.tag}`);
+
+  await registerCommands();
+});
+
+/* ================= INTERACTIONS ================= */
+client.on("interactionCreate", async (interaction) => {
+
+  /* ---------- /ticket ---------- */
+  if (interaction.isChatInputCommand()) {
+    if (interaction.commandName === "ticket") {
+
+      const embed = new EmbedBuilder()
+        .setTitle("🎫 Ticket System")
+        .setDescription("Click the button below to create a ticket.")
+        .setColor("Blue");
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("create_ticket")
+          .setLabel("Create Ticket")
+          .setStyle(ButtonStyle.Success)
+      );
+
+      return interaction.reply({
+        embeds: [embed],
+        components: [row]
+      });
+    }
   }
 
-  // 🟢 Create Ticket
+  /* ---------- CREATE TICKET ---------- */
   if (interaction.isButton() && interaction.customId === "create_ticket") {
 
     const guild = interaction.guild;
 
     const channel = await guild.channels.create({
       name: `ticket-${interaction.user.username}`,
+      type: 0,
       permissionOverwrites: [
         {
           id: guild.id,
@@ -78,14 +98,16 @@ client.on("interactionCreate", async (interaction) => {
           id: interaction.user.id,
           allow: [
             PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.ReadMessageHistory
           ]
         },
         {
-          id: config.staffRoleId,
+          id: staffRoleId,
           allow: [
             PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.ReadMessageHistory
           ]
         }
       ]
@@ -99,8 +121,8 @@ client.on("interactionCreate", async (interaction) => {
     );
 
     const embed = new EmbedBuilder()
-      .setTitle("Ticket Opened")
-      .setDescription("A staff member will assist you soon.")
+      .setTitle("🎫 Ticket Opened")
+      .setDescription("Staff will assist you soon.")
       .setColor("Green");
 
     await channel.send({
@@ -115,16 +137,17 @@ client.on("interactionCreate", async (interaction) => {
     });
   }
 
-  // 🔴 Close Ticket
+  /* ---------- CLOSE TICKET ---------- */
   if (interaction.isButton() && interaction.customId === "close_ticket") {
 
     await interaction.reply("Closing ticket...");
 
     setTimeout(() => {
-      interaction.channel.delete();
+      interaction.channel.delete().catch(() => {});
     }, 3000);
   }
 
 });
 
-client.login(config.token);
+/* ================= LOGIN ================= */
+client.login(token);
