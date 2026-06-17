@@ -237,7 +237,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       if (interaction.customId === "close_ticket") {
-
   await interaction.reply({
     content: "Closing ticket and generating transcript...",
     ephemeral: true
