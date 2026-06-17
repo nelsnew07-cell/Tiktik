@@ -21,6 +21,7 @@ const staffRoleId = process.env.STAFFROLE_ID;
 
 /* ================= CATEGORY ================= */
 const ticketCategoryId = "1470085301941702838";
+const TRANSCRIPT_LOG_CHANNEL = "1490027750608867578";
 
 /* ================= LEADERBOARD ================= */
 const LEADERBOARD_CHANNEL_ID = "1490201609047773346";
@@ -237,6 +238,42 @@ client.on("interactionCreate", async (interaction) => {
 
       if (interaction.customId === "close_ticket") {
 
+  await interaction.reply({
+    content: "Closing ticket and generating transcript...",
+    ephemeral: true
+  });
+
+  const html = await createTranscript(interaction.channel);
+  const buffer = Buffer.from(html, "utf8");
+
+  // send transcript inside ticket before deleting
+  await interaction.channel.send({
+    content: "📄 Transcript generated below:",
+    files: [{
+      attachment: buffer,
+      name: `${interaction.channel.name}-transcript.html`
+    }]
+  });
+
+  // ALSO send to log channel
+  const logChannel = await client.channels.fetch(TRANSCRIPT_LOG_CHANNEL).catch(() => null);
+
+  if (logChannel) {
+    await logChannel.send({
+      content: `📁 Transcript for **${interaction.channel.name}**`,
+      files: [{
+        attachment: buffer,
+        name: `${interaction.channel.name}-transcript.html`
+      }]
+    });
+  }
+
+  setTimeout(() => {
+    interaction.channel.delete().catch(() => {});
+  }, 5000);
+
+  return;
+      }
         await interaction.reply({
           content: "Closing ticket...",
           ephemeral: true
