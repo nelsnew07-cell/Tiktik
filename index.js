@@ -57,7 +57,7 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-/* ================= SLASH COMMAND ================= */
+/* ================= COMMAND ================= */
 const commands = [
   new SlashCommandBuilder()
     .setName("ticket")
@@ -124,7 +124,7 @@ async function createTicket(interaction, type, emoji) {
 
     const embed = new EmbedBuilder()
       .setTitle(`${emoji} ${type.toUpperCase()} TICKET`)
-      .setDescription("Please wait for staff assistance.")
+      .setDescription("Please wait for staff.")
       .setColor("Green");
 
     const row = new ActionRowBuilder().addComponents(
@@ -173,32 +173,19 @@ client.on("interactionCreate", async (interaction) => {
 
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName === "ticket") {
+
         const embed = new EmbedBuilder()
           .setTitle("🎫 Ticket System")
-          .setDescription("Select a category below:")
+          .setDescription("Select a category:")
           .setColor("Blue");
 
         const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId("support")
-            .setLabel("Support")
-            .setStyle(ButtonStyle.Primary),
-
-          new ButtonBuilder()
-            .setCustomId("report")
-            .setLabel("Report")
-            .setStyle(ButtonStyle.Danger),
-
-          new ButtonBuilder()
-            .setCustomId("buy")
-            .setLabel("Buy")
-            .setStyle(ButtonStyle.Success)
+          new ButtonBuilder().setCustomId("support").setLabel("Support").setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId("report").setLabel("Report").setStyle(ButtonStyle.Danger),
+          new ButtonBuilder().setCustomId("buy").setLabel("Buy").setStyle(ButtonStyle.Success)
         );
 
-        return interaction.reply({
-          embeds: [embed],
-          components: [row]
-        });
+        return interaction.reply({ embeds: [embed], components: [row] });
       }
     }
 
@@ -229,17 +216,18 @@ client.on("interactionCreate", async (interaction) => {
             .reverse()
             .join("\n");
 
-          fs.writeFileSync(`./${channel.id}.txt`, transcript);
+          const file = `./${channel.id}.txt`;
+          fs.writeFileSync(file, transcript);
 
           const logChannel = await client.channels.fetch(TRANSCRIPT_LOG_CHANNEL);
 
           await logChannel.send({
             content: `Transcript for ${channel.name}`,
-            files: [`./${channel.id}.txt`]
+            files: [file]
           });
 
         } catch (err) {
-          console.error(err);
+          console.error("Transcript error:", err);
         }
 
         setTimeout(() => {
@@ -278,7 +266,7 @@ async function updateLeaderboard() {
 
     const description = sorted.length
       ? sorted.map((x, i) =>
-          `${["🥇","🥈","🥉"][i] || `#${i+1}`} <@${x[0]}> — **${x[1]} tickets**`
+          `${["🥇","🥈","🥉"][i] || `#${i + 1}`} <@${x[0]}> — **${x[1]} tickets**`
         ).join("\n")
       : "No tickets yet.";
 
@@ -301,49 +289,9 @@ async function updateLeaderboard() {
     }
 
   } catch (err) {
-    console.error(err);
-  }
-}
-
-/* ================= LOGIN ================= */
-client.login(token);      console.log("Leaderboard channel not found or bot has no access");
-      return;
-    }
-
-    const sorted = [...ticketCount.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
-
-    const description = sorted.length
-      ? sorted.map((x, i) => {
-          const medal = ["🥇", "🥈", "🥉"][i] || `#${i + 1}`;
-          return `${medal} <@${x[0]}> — **${x[1]} tickets**`;
-        }).join("\n")
-      : "No tickets yet.";
-
-    const embed = new EmbedBuilder()
-      .setTitle("🏆 Ticket Leaderboard")
-      .setDescription(description)
-      .setColor("Gold")
-      .setFooter({ text: "Updates every 5 minutes" })
-      .setTimestamp();
-
-    let msg = null;
-
-    if (leaderboardMessageId) {
-      msg = await channel.messages.fetch(leaderboardMessageId).catch(() => null);
-    }
-
-    if (!msg) {
-      msg = await channel.send({ embeds: [embed] });
-      leaderboardMessageId = msg.id;
-    } else {
-      await msg.edit({ embeds: [embed] });
-    }
-
-  } catch (err) {
     console.error("Leaderboard error:", err);
   }
 }
 
+/* ================= LOGIN ================= */
 client.login(token);
