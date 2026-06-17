@@ -183,3 +183,86 @@ async function createTicket(interaction, type, emoji) {
     }
   }
 }
+
+/* ================= INTERACTIONS ================= */
+client.on("interactionCreate", async (interaction) => {
+  try {
+
+    if (interaction.isChatInputCommand()) {
+
+      if (interaction.commandName === "ticket") {
+
+        const embed = new EmbedBuilder()
+          .setTitle("🎫 Ticket System")
+          .setDescription("Select a category below:")
+          .setColor("Blue");
+
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId("support")
+            .setLabel("Support")
+            .setStyle(ButtonStyle.Primary),
+
+          new ButtonBuilder()
+            .setCustomId("report")
+            .setLabel("Report")
+            .setStyle(ButtonStyle.Danger),
+
+          new ButtonBuilder()
+            .setCustomId("buy")
+            .setLabel("Buy")
+            .setStyle(ButtonStyle.Success)
+        );
+
+        return interaction.reply({
+          embeds: [embed],
+          components: [row]
+        });
+      }
+    }
+
+    if (interaction.isButton()) {
+
+      if (interaction.customId === "support") {
+        return await createTicket(interaction, "support", "🛠");
+      }
+
+      if (interaction.customId === "report") {
+        return await createTicket(interaction, "report", "🚨");
+      }
+
+      if (interaction.customId === "buy") {
+        return await createTicket(interaction, "buy", "💰");
+      }
+
+      if (interaction.customId === "close_ticket") {
+
+        await interaction.reply({
+          content: "Closing ticket...",
+          ephemeral: true
+        });
+
+        setTimeout(() => {
+          interaction.channel.delete().catch(() => {});
+        }, 3000);
+
+        return;
+      }
+
+      return interaction.reply({
+        content: "Unknown button.",
+        ephemeral: true
+      });
+    }
+
+  } catch (err) {
+    console.error("Interaction Error:", err);
+
+    if (!interaction.replied) {
+      return interaction.reply({
+        content: "Something went wrong.",
+        ephemeral: true
+      });
+    }
+  }
+});
