@@ -150,6 +150,31 @@ async function createTicket(interaction, type, emoji) {
       .setStyle(ButtonStyle.Danger)
   );
 
+  await channel.send({
+    content: `<@${interaction.user.id}>`,
+    embeds: [embed],
+    components: [row]
+  });
+
+  // leaderboard count
+  ticketCount.set(
+    interaction.user.id,
+    Number(ticketCount.get(interaction.user.id) || 0) + 1
+  );
+
+  if (typeof saveLeaderboard === "function") {
+    saveLeaderboard();
+  }
+
+  if (typeof updateLeaderboard === "function") {
+    updateLeaderboard();
+  }
+
+  return interaction.reply({
+    content: `Ticket created: ${channel}`,
+    ephemeral: true
+  });
+}
   // Send ticket message
   await channel.send({
     content: `<@${interaction.user.id}>`,
