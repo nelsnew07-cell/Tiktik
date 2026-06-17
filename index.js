@@ -11,7 +11,7 @@ import {
   SlashCommandBuilder
 } from "discord.js";
 
-/* ================= ENV VARIABLES ================= */
+/* ================= ENV ================= */
 const token = process.env.token;
 const clientId = process.env.clientId;
 const guildId = process.env.guildId;
@@ -22,7 +22,7 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-/* ================= SLASH COMMAND ================= */
+/* ================= COMMAND ================= */
 const commands = [
   new SlashCommandBuilder()
     .setName("ticket")
@@ -44,11 +44,11 @@ async function registerCommands() {
 
     console.log("Slash commands registered successfully!");
   } catch (err) {
-    console.error("Command registration failed:", err);
+    console.error("Command registration error:", err);
   }
 }
 
-/* ================= BOT READY ================= */
+/* ================= READY ================= */
 client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
@@ -58,30 +58,28 @@ client.once("ready", async () => {
 /* ================= INTERACTIONS ================= */
 client.on("interactionCreate", async (interaction) => {
 
-  /* ---------- /ticket ---------- */
-  if (interaction.isChatInputCommand()) {
-    if (interaction.commandName === "ticket") {
+  // /ticket
+  if (interaction.isChatInputCommand() && interaction.commandName === "ticket") {
 
-      const embed = new EmbedBuilder()
-        .setTitle("🎫 Ticket System")
-        .setDescription("Click the button below to create a ticket.")
-        .setColor("Blue");
+    const embed = new EmbedBuilder()
+      .setTitle("🎫 Ticket System")
+      .setDescription("Click below to create a ticket.")
+      .setColor("Blue");
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("create_ticket")
-          .setLabel("Create Ticket")
-          .setStyle(ButtonStyle.Success)
-      );
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("create_ticket")
+        .setLabel("Create Ticket")
+        .setStyle(ButtonStyle.Success)
+    );
 
-      return interaction.reply({
-        embeds: [embed],
-        components: [row]
-      });
-    }
+    return interaction.reply({
+      embeds: [embed],
+      components: [row]
+    });
   }
 
-  /* ---------- CREATE TICKET ---------- */
+  // CREATE TICKET
   if (interaction.isButton() && interaction.customId === "create_ticket") {
 
     const guild = interaction.guild;
@@ -122,7 +120,7 @@ client.on("interactionCreate", async (interaction) => {
 
     const embed = new EmbedBuilder()
       .setTitle("🎫 Ticket Opened")
-      .setDescription("Staff will assist you soon.")
+      .setDescription("A staff member will assist you soon.")
       .setColor("Green");
 
     await channel.send({
@@ -137,7 +135,7 @@ client.on("interactionCreate", async (interaction) => {
     });
   }
 
-  /* ---------- CLOSE TICKET ---------- */
+  // CLOSE TICKET
   if (interaction.isButton() && interaction.customId === "close_ticket") {
 
     await interaction.reply("Closing ticket...");
