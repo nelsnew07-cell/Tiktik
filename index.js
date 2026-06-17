@@ -174,44 +174,37 @@ async function createTicket(interaction, type, emoji) {
     saveLeaderboard();
   }
 
-  // Update leaderboard display
-  if (typeof updateLeaderboard === "function") {
-    updateLeaderboard();
-  }
+/* ================= ROLE MENTIONS (UPDATED) ================= */
+  const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
 
-  // Reply to user (IMPORTANT: only once and inside function)
-  return interaction.reply({
-    content: `Ticket created: ${channel}`,
-    ephemeral: true
+  await channel.send({
+    content: `${roleMentions} | <@${interaction.user.id}>`,
+    embeds: [embed],
+    components: [row]
   });
-}
-  // Update leaderboard count
+
+  // leaderboard count
   ticketCount.set(
     interaction.user.id,
     Number(ticketCount.get(interaction.user.id) || 0) + 1
   );
 
-  // Save to file (persistent leaderboard)
-  saveLeaderboard();
+  // save leaderboard
+  if (typeof saveLeaderboard === "function") {
+    saveLeaderboard();
+  }
 
-  // Update leaderboard channel
-  updateLeaderboard();
+  // update leaderboard
+  if (typeof updateLeaderboard === "function") {
+    updateLeaderboard();
+  }
 
-  // Reply to user
+  // reply (ONLY ONCE, INSIDE FUNCTION)
   return interaction.reply({
     content: `Ticket created: ${channel}`,
     ephemeral: true
   });
 }
-
-  /* ================= ROLE MENTIONS (UPDATED) ================= */
-const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
-
-await channel.send({
-  content: `${roleMentions} | <@${interaction.user.id}>`,
-  embeds: [embed],
-  components: [row]
-});
 
 // 🎫 increase ticket count
 ticketCount.set(
