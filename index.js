@@ -17,15 +17,17 @@ const clientId = process.env.CLIENT_ID;
 const guildId = process.env.GUILD_ID;
 const staffRoleId = process.env.STAFFROLE_ID;
 
-/* ================= TICKET CATEGORY ================= */
+/* ================= CATEGORY ================= */
 const ticketCategoryId = "1470085301941702838";
 
-/* ================= STAFF ROLE IDS (NO BAD ROLE) ================= */
+/* ================= STAFF ROLE IDS (EXCEPT REMOVED ONE) ================= */
 const staffRoles = [
   "1474440409848479745",
   "1465642372405919785",
   "1465368284944928869",
-  "1462423468753817723"
+  "1462423468753817723",
+  "1462423337220444316"
+  // ❌ 690727923388383294 REMOVED
 ];
 
 /* ================= CLIENT ================= */
@@ -110,9 +112,11 @@ async function createTicket(interaction, type, emoji) {
       .setStyle(ButtonStyle.Danger)
   );
 
-  /* ================= NO ROLE 690727923388383294 ANYMORE ================= */
+  /* ================= ROLE MENTIONS (UPDATED) ================= */
+  const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
+
   await channel.send({
-    content: `<@${interaction.user.id}>`,
+    content: `${roleMentions} | <@${interaction.user.id}>`,
     embeds: [embed],
     components: [row]
   });
@@ -126,7 +130,6 @@ async function createTicket(interaction, type, emoji) {
 /* ================= INTERACTIONS ================= */
 client.on("interactionCreate", async (interaction) => {
 
-  /* ---------- SLASH COMMAND ---------- */
   if (interaction.isChatInputCommand()) {
 
     if (interaction.commandName === "ticket") {
@@ -160,7 +163,6 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
 
-  /* ---------- BUTTONS ---------- */
   if (interaction.isButton()) {
 
     if (interaction.customId === "support") {
