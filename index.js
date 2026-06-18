@@ -12,6 +12,7 @@ import {
 } from "discord.js";
 
 import fs from "fs";
+import { updateLeaderboard, cleanupOldLeaderboards } from "./leaderboard.js";
 
 /* ================= ENV ================= */
 const token = process.env.DISCORD_TOKEN;
@@ -33,8 +34,6 @@ if (fs.existsSync(DATA_FILE)) {
   const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
   ticketCount = new Map(Object.entries(data));
 }
-
-let leaderboardMessageId = null;
 
 const claimedTickets = new Map();
 
@@ -90,8 +89,13 @@ client.once("ready", async () => {
 
   await registerCommands();
 
-  updateLeaderboard();
-  setInterval(updateLeaderboard, 5 * 60 * 1000);
+  // Run ONCE to delete old duplicate leaderboard messages, keeping only this one.
+  // After confirming in Discord that only 1 leaderboard message remains,
+  // delete or comment out this line.
+  await cleanupOldLeaderboards(client, "1517004197311025264");
+
+  updateLeaderboard(client, ticketCount);
+  setInterval(() => updateLeaderboard(client, ticketCount), 5 * 60 * 1000);
 });
 
 /* ================= CREATE TICKET ================= */
@@ -250,7 +254,7 @@ if (claimedBy) {
   );
 
   saveLeaderboard();
-  updateLeaderboard();
+  updateLeaderboard(client, ticketCount);
 
   claimedTickets.delete(interaction.channel.id);
 }
