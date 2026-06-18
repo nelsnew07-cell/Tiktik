@@ -1,10 +1,10 @@
-const fs = require("fs");
-const path = require("path");
-const { EmbedBuilder } = require("discord.js");
+import fs from "fs";
+import path from "path";
+import { EmbedBuilder } from "discord.js";
 
 /* ================= CONFIG ================= */
 const LEADERBOARD_CHANNEL_ID = "1490201609047773346";
-const LEADERBOARD_STATE_FILE = path.join(__dirname, "leaderboardState.json");
+const LEADERBOARD_STATE_FILE = "./leaderboardState.json";
 
 /* ================= PERSISTENCE ================= */
 function loadLeaderboardMessageId() {
@@ -83,7 +83,4 @@ async function updateLeaderboard(client, ticketCount) {
   }
 }
 
-module.exports = {
-  updateLeaderboard,
-  cleanupOldLeaderboards,
-};
+export { updateLeaderboard, cleanupOldLeaderboards };
