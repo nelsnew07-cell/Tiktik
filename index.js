@@ -201,11 +201,22 @@ client.on("interactionCreate", async (interaction) => {
         return createTicket(interaction, "buy", "💰");
 
       if (interaction.customId === "close_ticket") {
-        await interaction.reply({
-          content: "Closing ticket...",
-          ephemeral: true
-        });
 
+  const isStaff = staffRoles.some(roleId =>
+    interaction.member.roles.cache.has(roleId)
+  );
+
+  if (!isStaff) {
+    return interaction.reply({
+      content: "❌ Only staff members can close tickets.",
+      ephemeral: true
+    });
+  }
+
+  await interaction.reply({
+    content: "Closing ticket...",
+    ephemeral: true
+  });
         const channel = interaction.channel;
 
         try {
