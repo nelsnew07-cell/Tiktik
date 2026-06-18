@@ -142,14 +142,6 @@ async function createTicket(interaction, type, emoji) {
       components: [row]
     });
 
-    ticketCount.set(
-      interaction.user.id,
-      (ticketCount.get(interaction.user.id) || 0) + 1
-    );
-
-    saveLeaderboard();
-    updateLeaderboard();
-
     return interaction.reply({
       content: `Ticket created: ${channel}`,
       ephemeral: true
@@ -213,6 +205,14 @@ client.on("interactionCreate", async (interaction) => {
     });
   }
 
+ticketCount.set(
+  interaction.user.id,
+  (ticketCount.get(interaction.user.id) || 0) + 1
+);
+
+saveLeaderboard();
+updateLeaderboard();
+        
   await interaction.reply({
     content: "Closing ticket...",
     ephemeral: true
