@@ -308,43 +308,5 @@ if (claimedBy) {
   }
 });
 
-/* ================= LEADERBOARD ================= */
-async function updateLeaderboard() {
-  try {
-    const channel = await client.channels.fetch(LEADERBOARD_CHANNEL_ID);
-
-    const sorted = [...ticketCount.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
-
-    const description = sorted.length
-      ? sorted.map((x, i) =>
-          `${["🥇","🥈","🥉"][i] || `#${i + 1}`} <@${x[0]}> — **${x[1]} tickets**`
-        ).join("\n")
-      : "No tickets yet.";
-
-    const embed = new EmbedBuilder()
-      .setTitle("🏆 Ticket Leaderboard")
-      .setDescription(description)
-      .setColor("Gold");
-
-    let msg;
-
-    if (leaderboardMessageId) {
-      msg = await channel.messages.fetch(leaderboardMessageId).catch(() => null);
-    }
-
-    if (!msg) {
-      msg = await channel.send({ embeds: [embed] });
-      leaderboardMessageId = msg.id;
-    } else {
-      await msg.edit({ embeds: [embed] });
-    }
-
-  } catch (err) {
-    console.error("Leaderboard error:", err);
-  }
-}
-
 /* ================= LOGIN ================= */
 client.login(token);
