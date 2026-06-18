@@ -3,7 +3,7 @@ const path = require("path");
 const { EmbedBuilder } = require("discord.js");
 
 /* ================= CONFIG ================= */
-const LEADERBOARD_CHANNEL_ID = "YOUR_LEADERBOARD_CHANNEL_ID";
+const LEADERBOARD_CHANNEL_ID = "1490201609047773346";
 const LEADERBOARD_STATE_FILE = path.join(__dirname, "leaderboardState.json");
 
 /* ================= PERSISTENCE ================= */
