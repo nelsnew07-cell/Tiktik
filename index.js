@@ -13,6 +13,7 @@ import {
 
 import fs from "fs";
 import { updateLeaderboard, cleanupOldLeaderboards } from "./leaderboard.js";
+import { data as announceData, execute as announceExecute } from "./commands/announce.js";
 
 /* ================= ENV ================= */
 const token = process.env.DISCORD_TOKEN;
@@ -63,7 +64,9 @@ const commands = [
   new SlashCommandBuilder()
     .setName("ticket")
     .setDescription("Open ticket panel")
-    .toJSON()
+    .toJSON(),
+
+  announceData.toJSON()
 ];
 
 const rest = new REST({ version: "10" });
