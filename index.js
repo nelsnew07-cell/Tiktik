@@ -177,6 +177,9 @@ client.on("interactionCreate", async (interaction) => {
   try {
 
     if (interaction.isChatInputCommand()) {
+      if (interaction.commandName === "announce") {
+return announceExecute(interaction, staffRoles);
+}
       if (interaction.commandName === "ticket") {
 
         const embed = new EmbedBuilder()
