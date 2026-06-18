@@ -36,6 +36,8 @@ if (fs.existsSync(DATA_FILE)) {
 
 let leaderboardMessageId = null;
 
+const claimedTickets = new Map();
+
 function saveLeaderboard() {
   fs.writeFileSync(
     DATA_FILE,
@@ -128,12 +130,16 @@ async function createTicket(interaction, type, emoji) {
       .setColor("Green");
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("close_ticket")
-        .setLabel("Close Ticket")
-        .setStyle(ButtonStyle.Danger)
-    );
+  new ButtonBuilder()
+    .setCustomId("claim_ticket")
+    .setLabel("Claim Ticket")
+    .setStyle(ButtonStyle.Success),
 
+  new ButtonBuilder()
+    .setCustomId("close_ticket")
+    .setLabel("Close Ticket")
+    .setStyle(ButtonStyle.Danger)
+);
     const roleMentions = staffRoles.map(id => `<@&${id}>`).join(" ");
 
     await channel.send({
@@ -192,6 +198,36 @@ client.on("interactionCreate", async (interaction) => {
       if (interaction.customId === "buy")
         return createTicket(interaction, "buy", "💰");
 
+if (interaction.customId === "claim_ticket") {
+
+  const isStaff = staffRoles.some(roleId =>
+    interaction.member.roles.cache.has(roleId)
+  );
+
+  if (!isStaff) {
+    return interaction.reply({
+      content: "❌ Only staff can claim tickets.",
+      ephemeral: true
+    });
+  }
+
+  if (claimedTickets.has(interaction.channel.id)) {
+    return interaction.reply({
+      content: `⚠️ This ticket is already claimed by <@${claimedTickets.get(interaction.channel.id)}>`,
+      ephemeral: true
+    });
+  }
+
+  claimedTickets.set(
+    interaction.channel.id,
+    interaction.user.id
+  );
+
+  return interaction.reply({
+    content: `🎫 Ticket claimed by <@${interaction.user.id}>`
+  });
+}
+      
       if (interaction.customId === "close_ticket") {
 
   const isStaff = staffRoles.some(roleId =>
@@ -205,13 +241,19 @@ client.on("interactionCreate", async (interaction) => {
     });
   }
 
-ticketCount.set(
-  interaction.user.id,
-  (ticketCount.get(interaction.user.id) || 0) + 1
-);
+const claimedBy = claimedTickets.get(interaction.channel.id);
 
-saveLeaderboard();
-updateLeaderboard();
+if (claimedBy) {
+  ticketCount.set(
+    claimedBy,
+    (ticketCount.get(claimedBy) || 0) + 1
+  );
+
+  saveLeaderboard();
+  updateLeaderboard();
+
+  claimedTickets.delete(interaction.channel.id);
+}
         
   await interaction.reply({
     content: "Closing ticket...",
