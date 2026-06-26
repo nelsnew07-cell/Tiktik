@@ -208,14 +208,15 @@ async function createTicket(interaction, type, emoji) {
         },
 
         {
-          id: interaction.user.id,
-          allow: [
-            PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages,
-            PermissionsBitField.Flags.ReadMessageHistory
-          ]
-        },
-
+  id: interaction.user.id,
+  allow: [
+    PermissionsBitField.Flags.ViewChannel,
+    PermissionsBitField.Flags.SendMessages,
+    PermissionsBitField.Flags.ReadMessageHistory,
+    PermissionsBitField.Flags.AttachFiles,
+    PermissionsBitField.Flags.EmbedLinks
+  ]
+},
         {
           id: staffRoleId,
           allow: [
