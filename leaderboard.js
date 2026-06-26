@@ -28,10 +28,8 @@ let leaderboardMessageId = loadMessageId();
 
 /* ================= CLEANUP ================= */
 
-async function cleanupOldLeaderboards(client) {
-
+export async function cleanupOldLeaderboards(client) {
   const channel = await client.channels.fetch(LEADERBOARD_CHANNEL_ID);
-
   if (!channel) return;
 
   const messages = await channel.messages.fetch({ limit: 100 });
@@ -41,32 +39,21 @@ async function cleanupOldLeaderboards(client) {
   );
 
   for (const msg of botMessages.values()) {
-
     if (msg.id !== leaderboardMessageId) {
-
       await msg.delete().catch(() => {});
-
     }
-
   }
-
 }
 
 /* ================= LEADERBOARD ================= */
 
-async function updateLeaderboard(client, staffStats) {
-
+export async function updateLeaderboard(client, staffStats) {
   try {
-
-    const channel = await client.channels.fetch(
-      LEADERBOARD_CHANNEL_ID
-    );
-
+    const channel = await client.channels.fetch(LEADERBOARD_CHANNEL_ID);
     if (!channel) return;
 
     const sorted = [...staffStats.entries()]
       .sort((a, b) => {
-
         const scoreA =
           a[1].closed * 30 +
           a[1].claimed * 20 +
@@ -78,16 +65,49 @@ async function updateLeaderboard(client, staffStats) {
           Math.floor(b[1].words / 5);
 
         return scoreB - scoreA;
-
       })
       .slice(0, 10);
 
     let description = "";
 
     if (!sorted.length) {
-
       description = "No staff activity yet.";
-
     } else {
+      description = sorted
+        .map(([id, stats], index) => {
+          const score =
+            stats.closed * 30 +
+            stats.claimed * 20 +
+            Math.floor(stats.words / 5);
 
-      sorted.forEach
+          return `**#${index + 1}** <@${id}>
+• Closed: ${stats.closed}
+• Claimed: ${stats.claimed}
+• Words: ${stats.words}
+• Score: **${score}**`;
+        })
+        .join("\n\n");
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor("Blue")
+      .setTitle("🏆 Staff Leaderboard")
+      .setDescription(description)
+      .setTimestamp();
+
+    if (leaderboardMessageId) {
+      try {
+        const msg = await channel.messages.fetch(leaderboardMessageId);
+        await msg.edit({ embeds: [embed] });
+        return;
+      } catch {}
+    }
+
+    const msg = await channel.send({ embeds: [embed] });
+    leaderboardMessageId = msg.id;
+    saveMessageId(msg.id);
+
+  } catch (err) {
+    console.error("Leaderboard update failed:", err);
+  }
+}
