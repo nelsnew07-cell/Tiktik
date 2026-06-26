@@ -227,7 +227,7 @@ async function createTicket(interaction, type, emoji) {
       .setDescription(
 `Welcome <@${interaction.user.id}>!
 
-Please explain your concern in detail.
+Please don't Ping staff hehe na Ping napo kami ng ticket bot.
 
 A staff member will assist you shortly.`
       )
