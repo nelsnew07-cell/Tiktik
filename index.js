@@ -1,11 +1,11 @@
 import {
   Client,
   GatewayIntentBits,
+  PermissionsBitField,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  PermissionsBitField,
   REST,
   Routes,
   SlashCommandBuilder
@@ -22,7 +22,6 @@ import {
   data as announceData,
   execute as announceExecute
 } from "./commands/announce.js";
-
 /* ================= ENV ================= */
 
 const token = process.env.DISCORD_TOKEN;
@@ -35,32 +34,40 @@ const staffRoleId = process.env.STAFFROLE_ID;
 const ticketCategoryId = "1470085301941702838";
 const transcriptChannelId = "1490027750608867578";
 
+/* ================= STAFF ROLES ================= */
+
+const staffRoles = [
+  "1474440409848479745",
+  "1465642372405919785",
+  "1465368284944928869",
+  "1462423468753817723",
+  "1462423337220444316"
+];
+
 /* ================= DATA ================= */
 
-const DATA_FILE = "./leaderboard.json";
+const DATA_FILE = "./staffStats.json";
 
 let staffStats = new Map();
 
 if (fs.existsSync(DATA_FILE)) {
-  const raw = JSON.parse(
-    fs.readFileSync(DATA_FILE, "utf8")
+  staffStats = new Map(
+    Object.entries(
+      JSON.parse(fs.readFileSync(DATA_FILE, "utf8"))
+    )
   );
-
-  staffStats = new Map(Object.entries(raw));
 }
+
+const claimedTickets = new Map();
 
 function getStaff(userId) {
 
   if (!staffStats.has(userId)) {
 
     staffStats.set(userId, {
-
-      claimed: 0,
-
       closed: 0,
-
+      claimed: 0,
       words: 0
-
     });
 
   }
@@ -72,19 +79,12 @@ function getStaff(userId) {
 function saveLeaderboard() {
 
   fs.writeFileSync(
-
     DATA_FILE,
-
     JSON.stringify(
-
       Object.fromEntries(staffStats),
-
       null,
-
       2
-
     )
-
   );
 
 }
@@ -112,116 +112,61 @@ const staffRoles = [
 /* ================= CLIENT ================= */
 
 const client = new Client({
-
   intents: [
-
     GatewayIntentBits.Guilds,
-
     GatewayIntentBits.GuildMessages,
-
     GatewayIntentBits.MessageContent
-
   ]
-
 });
 
 /* ================= COMMANDS ================= */
 
 const commands = [
-
   new SlashCommandBuilder()
-
     .setName("ticket")
-
-    .setDescription("Open ticket panel")
-
+    .setDescription("Open the ticket panel")
     .toJSON(),
 
   announceData.toJSON()
-
 ];
 
-const rest = new REST({
-
-  version: "10"
-
-});
+const rest = new REST({ version: "10" });
 
 async function registerCommands() {
+  try {
 
-  rest.setToken(token);
+    rest.setToken(token);
 
-  await rest.put(
+    await rest.put(
+      Routes.applicationGuildCommands(
+        clientId,
+        guildId
+      ),
+      { body: commands }
+    );
 
-    Routes.applicationGuildCommands(
+    console.log("✅ Slash commands registered.");
 
-      clientId,
-
-      guildId
-
-    ),
-
-    {
-
-      body: commands
-
-    }
-
-  );
-
-  console.log("Slash commands registered.");
-
+  } catch (err) {
+    console.error("Command registration failed:", err);
+  }
 }
 
 /* ================= READY ================= */
 
 client.once("ready", async () => {
 
-  console.log(`${client.user.tag} is online.`);
+  console.log(`✅ Logged in as ${client.user.tag}`);
 
-  try {
+  await registerCommands();
 
-    await registerCommands();
+  await cleanupOldLeaderboards(client);
 
-    console.log("Commands registered.");
-
-  } catch (err) {
-
-    console.error("Command register error:", err);
-
-  }
-
-  try {
-
-    await cleanupOldLeaderboards(client);
-
-  } catch (err) {
-
-    console.error("Leaderboard cleanup failed:", err);
-
-  }
-
-  try {
-
-    await updateLeaderboard(client, staffStats);
-
-  } catch (err) {
-
-    console.error(err);
-
-  }
+  await updateLeaderboard(client, staffStats);
 
   setInterval(async () => {
 
-    try {
-
-      await updateLeaderboard(client, staffStats);
-
-    } catch (err) {
-
-      console.error(err);
-
-    }
+    await updateLeaderboard(client, staffStats);
 
   }, 5 * 60 * 1000);
 
@@ -279,21 +224,21 @@ async function createTicket(interaction, type, emoji) {
       .setDescription(
 `Welcome <@${interaction.user.id}>!
 
-A staff member will be with you shortly.
+Please explain your concern in detail.
 
-Please explain your concern in detail.`
+A staff member will assist you shortly.`
       )
 
       .addFields(
 
         {
-          name: "Ticket Owner",
+          name: "👤 Ticket Owner",
           value: `<@${interaction.user.id}>`,
           inline: true
         },
 
         {
-          name: "Status",
+          name: "📌 Status",
           value: "🟡 Waiting for Staff",
           inline: true
         }
@@ -307,23 +252,15 @@ Please explain your concern in detail.`
       .addComponents(
 
         new ButtonBuilder()
-
           .setCustomId("claim_ticket")
-
           .setLabel("Claim")
-
           .setEmoji("🎫")
-
           .setStyle(ButtonStyle.Success),
 
         new ButtonBuilder()
-
           .setCustomId("close_ticket")
-
           .setLabel("Close")
-
           .setEmoji("🔒")
-
           .setStyle(ButtonStyle.Danger)
 
       );
@@ -352,9 +289,7 @@ Please explain your concern in detail.`
 
     });
 
-  }
-
-  catch (err) {
+  } catch (err) {
 
     console.error(err);
 
@@ -373,200 +308,253 @@ Please explain your concern in detail.`
   }
 
 }
-
+            
 /* ================= INTERACTIONS ================= */
+
 client.on("interactionCreate", async (interaction) => {
+
   try {
 
+    /* ================= SLASH COMMANDS ================= */
+
     if (interaction.isChatInputCommand()) {
+
       if (interaction.commandName === "announce") {
-return announceExecute(interaction, staffRoles);
-}
+        return announceExecute(interaction, staffRoles);
+      }
+
       if (interaction.commandName === "ticket") {
 
         const embed = new EmbedBuilder()
+
+          .setColor("Blue")
+
           .setTitle("🎫 Ticket System")
-          .setDescription("Select a category:")
-          .setColor("Blue");
 
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId("APPLY").setLabel("📄-Apply").setStyle(ButtonStyle.Primary),
-          new ButtonBuilder().setCustomId("REPORT").setLabel("👁‍🗨-Report").setStyle(ButtonStyle.Danger),
-          new ButtonBuilder().setCustomId("BUY").setLabel("🛒-Buy").setStyle(ButtonStyle.Success)
-        );
+          .setDescription(
+`Choose the type of ticket you want to open.`
+          );
 
-        return interaction.reply({ embeds: [embed], components: [row] });
+        const row = new ActionRowBuilder()
+
+          .addComponents(
+
+            new ButtonBuilder()
+              .setCustomId("support")
+              .setLabel("Support")
+              .setEmoji("🛠")
+              .setStyle(ButtonStyle.Primary),
+
+            new ButtonBuilder()
+              .setCustomId("report")
+              .setLabel("Report")
+              .setEmoji("🚨")
+              .setStyle(ButtonStyle.Danger),
+
+            new ButtonBuilder()
+              .setCustomId("buy")
+              .setLabel("Buy")
+              .setEmoji("🛒")
+              .setStyle(ButtonStyle.Success)
+
+          );
+
+        return interaction.reply({
+
+          embeds: [embed],
+
+          components: [row]
+
+        });
+
       }
+
     }
+        /* ================= BUTTONS ================= */
 
     if (interaction.isButton()) {
 
-      if (interaction.customId === "support")
+      /* ---------- CREATE TICKETS ---------- */
+
+      if (interaction.customId === "support") {
         return createTicket(interaction, "support", "🛠");
+      }
 
-      if (interaction.customId === "report")
+      if (interaction.customId === "report") {
         return createTicket(interaction, "report", "🚨");
+      }
 
-      if (interaction.customId === "buy")
-        return createTicket(interaction, "buy", "💰");
+      if (interaction.customId === "buy") {
+        return createTicket(interaction, "buy", "🛒");
+      }
 
-if (interaction.customId === "claim_ticket") {
+      /* ---------- CLAIM TICKET ---------- */
 
-  const isStaff = staffRoles.some(role =>
-    interaction.member.roles.cache.has(role)
-  );
+      if (interaction.customId === "claim_ticket") {
 
-  if (!isStaff) {
-    return interaction.reply({
-      content: "❌ Only staff can claim tickets.",
-      ephemeral: true
-    });
-  }
+        const isStaff = staffRoles.some(role =>
+          interaction.member.roles.cache.has(role)
+        );
 
-  if (claimedTickets.has(interaction.channel.id)) {
-    return interaction.reply({
-      content: `⚠️ This ticket has already been claimed by <@${claimedTickets.get(interaction.channel.id)}>`,
-      ephemeral: true
-    });
-  }
+        if (!isStaff) {
+          return interaction.reply({
+            content: "❌ Only staff can claim tickets.",
+            ephemeral: true
+          });
+        }
 
-  claimedTickets.set(
-    interaction.channel.id,
-    interaction.user.id
-  );
+        if (claimedTickets.has(interaction.channel.id)) {
+          return interaction.reply({
+            content: `⚠️ This ticket is already claimed by <@${claimedTickets.get(interaction.channel.id)}>.`,
+            ephemeral: true
+          });
+        }
 
-  const stats = getStaff(interaction.user.id);
+        claimedTickets.set(
+          interaction.channel.id,
+          interaction.user.id
+        );
 
-  stats.claimed++;
+        const stats = getStaff(interaction.user.id);
+        stats.claimed++;
 
-  saveLeaderboard();
+        saveLeaderboard();
+        await updateLeaderboard(client, staffStats);
 
-  await updateLeaderboard(client, staffStats);
+        const embed = EmbedBuilder.from(interaction.message.embeds[0]);
 
-  const embed = EmbedBuilder.from(interaction.message.embeds[0]);
+        embed.spliceFields(1, 1, {
+          name: "📌 Status",
+          value: `🟢 Claimed by <@${interaction.user.id}>`,
+          inline: true
+        });
 
-  embed.spliceFields(
-    1,
-    1,
-    {
-      name: "Status",
-      value: `🟢 Claimed by <@${interaction.user.id}>`,
-      inline: true
-    }
-  );
+        await interaction.update({
+          embeds: [embed],
+          components: interaction.message.components
+        });
 
-  await interaction.update({
-    embeds: [embed],
-    components: interaction.message.components
-  });
+        return interaction.followUp({
+          content: `🎫 Ticket claimed by <@${interaction.user.id}>`
+        });
 
-  await interaction.followUp({
-    content: `🎫 Ticket claimed by <@${interaction.user.id}>`
-  });
+      }
+            /* ---------- CLOSE TICKET ---------- */
 
-}
-      
       if (interaction.customId === "close_ticket") {
 
-  const isStaff = staffRoles.some(role =>
-    interaction.member.roles.cache.has(role)
-  );
+        const isStaff = staffRoles.some(role =>
+          interaction.member.roles.cache.has(role)
+        );
 
-  if (!isStaff) {
-    return interaction.reply({
-      content: "❌ Only staff members can close tickets.",
-      ephemeral: true
-    });
-  }
+        if (!isStaff) {
+          return interaction.reply({
+            content: "❌ Only staff members can close tickets.",
+            ephemeral: true
+          });
+        }
 
-  const claimedBy = claimedTickets.get(interaction.channel.id);
+        const claimedBy = claimedTickets.get(interaction.channel.id);
 
-  if (!claimedBy) {
-    return interaction.reply({
-      content: "❌ This ticket has not been claimed yet.",
-      ephemeral: true
-    });
-  }
+        if (!claimedBy) {
+          return interaction.reply({
+            content: "❌ This ticket hasn't been claimed yet.",
+            ephemeral: true
+          });
+        }
 
-  if (claimedBy !== interaction.user.id) {
-    return interaction.reply({
-      content: `❌ Only <@${claimedBy}> can close this ticket.`,
-      ephemeral: true
-    });
-  }
+        if (claimedBy !== interaction.user.id) {
+          return interaction.reply({
+            content: `❌ Only <@${claimedBy}> can close this ticket.`,
+            ephemeral: true
+          });
+        }
 
-  // Add close to leaderboard
-  const stats = getStaff(interaction.user.id);
-  stats.closed++;
+        const stats = getStaff(interaction.user.id);
 
-  saveLeaderboard();
-  await updateLeaderboard(client, staffStats);
+        stats.closed++;
 
-  await interaction.reply({
-    content: "🔒 Closing ticket...",
-    ephemeral: true
-  });
+        saveLeaderboard();
 
-  const channel = interaction.channel;
+        await updateLeaderboard(client, staffStats);
 
-  try {
+        await interaction.reply({
+          content: "🔒 Closing ticket...",
+          ephemeral: true
+        });
 
-    const messages = await channel.messages.fetch({ limit: 100 });
+        const channel = interaction.channel;
 
-    const transcript = messages
-      .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-      .map(msg =>
-        `[${new Date(msg.createdTimestamp).toLocaleString()}] ${msg.author.tag}: ${msg.content}`
-      )
-      .join("\n");
+        try {
 
-    const file = `./${channel.id}.txt`;
+          const messages = await channel.messages.fetch({
+            limit: 100
+          });
 
-    fs.writeFileSync(file, transcript);
+          const transcript = messages
+            .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+            .map(msg =>
+              `[${new Date(msg.createdTimestamp).toLocaleString()}] ${msg.author.tag}: ${msg.content}`
+            )
+            .join("\n");
 
-    const logChannel = await client.channels.fetch(transcriptChannelId);
+          const file = `./${channel.id}.txt`;
 
-    if (logChannel) {
-      await logChannel.send({
-        content:
+          fs.writeFileSync(file, transcript);
+
+          const logChannel = await client.channels.fetch(transcriptChannelId);
+
+          if (logChannel) {
+
+            await logChannel.send({
+              content:
 `📄 **Ticket Closed**
 
 👤 Closed By: <@${interaction.user.id}>
 🎫 Ticket: ${channel.name}`,
-        files: [file]
-      });
-    }
+              files: [file]
+            });
 
-    fs.unlinkSync(file);
+          }
 
-  } catch (err) {
-    console.error("Transcript error:", err);
-  }
+          fs.unlinkSync(file);
 
-  claimedTickets.delete(channel.id);
+        } catch (err) {
 
-  setTimeout(() => {
-    channel.delete().catch(() => {});
-  }, 3000);
+          console.error("Transcript error:", err);
 
-  return;
-    }
-      return interaction.reply({
+        }
+
+        claimedTickets.delete(channel.id);
+
+        setTimeout(() => {
+          channel.delete().catch(() => {});
+        }, 3000);
+
+        return;
+
+      }
+
+            return interaction.reply({
         content: "Unknown button.",
         ephemeral: true
       });
+
     }
 
   } catch (err) {
-    console.error(err);
+
+    console.error("Interaction Error:", err);
 
     if (!interaction.replied) {
       return interaction.reply({
-        content: "Error occurred.",
+        content: "❌ Something went wrong.",
         ephemeral: true
       });
     }
+
   }
+
 });
 
 /* ================= WORD COUNTER ================= */
