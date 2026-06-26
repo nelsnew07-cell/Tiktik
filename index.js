@@ -89,10 +89,6 @@ function saveLeaderboard() {
 
 }
 
-/* ================= CLAIM CACHE ================= */
-
-const claimedTickets = new Map();
-
 /* ================= STAFF ROLES ================= */
 
 const staffRoles = [
