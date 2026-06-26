@@ -1,86 +1,93 @@
 import fs from "fs";
-import path from "path";
 import { EmbedBuilder } from "discord.js";
 
 /* ================= CONFIG ================= */
-const LEADERBOARD_CHANNEL_ID = "1490201609047773346";
-const LEADERBOARD_STATE_FILE = "./leaderboardState.json";
 
-/* ================= PERSISTENCE ================= */
-function loadLeaderboardMessageId() {
+const LEADERBOARD_CHANNEL_ID = "1490201609047773346";
+const STATE_FILE = "./leaderboardState.json";
+
+/* ================= MESSAGE ID ================= */
+
+function loadMessageId() {
   try {
-    const data = JSON.parse(fs.readFileSync(LEADERBOARD_STATE_FILE, "utf8"));
-    return data.leaderboardMessageId || null;
+    const data = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+    return data.messageId || null;
   } catch {
     return null;
   }
 }
 
-function saveLeaderboardMessageId(id) {
+function saveMessageId(id) {
   fs.writeFileSync(
-    LEADERBOARD_STATE_FILE,
-    JSON.stringify({ leaderboardMessageId: id }, null, 2)
+    STATE_FILE,
+    JSON.stringify({ messageId: id }, null, 2)
   );
 }
 
-let leaderboardMessageId = loadLeaderboardMessageId() || "1517004197311025264";
+let leaderboardMessageId = loadMessageId();
 
-/* ================= ONE-TIME CLEANUP ================= */
-async function cleanupOldLeaderboards(client, keepId) {
+/* ================= CLEANUP ================= */
+
+async function cleanupOldLeaderboards(client) {
+
   const channel = await client.channels.fetch(LEADERBOARD_CHANNEL_ID);
-  const messages = await channel.messages.fetch({ limit: 50 });
 
-  const toDelete = messages.filter(
-    (m) => m.author.id === client.user.id && m.id !== keepId
+  if (!channel) return;
+
+  const messages = await channel.messages.fetch({ limit: 100 });
+
+  const botMessages = messages.filter(
+    m => m.author.id === client.user.id
   );
 
-  for (const m of toDelete.values()) {
-    await m.delete().catch(() => {});
+  for (const msg of botMessages.values()) {
+
+    if (msg.id !== leaderboardMessageId) {
+
+      await msg.delete().catch(() => {});
+
+    }
+
   }
 
-  console.log(`Cleaned up ${toDelete.size} old leaderboard message(s).`);
 }
 
 /* ================= LEADERBOARD ================= */
-async function updateLeaderboard(client, ticketCount) {
-  try {
-    const channel = await client.channels.fetch(LEADERBOARD_CHANNEL_ID);
 
-    const sorted = [...ticketCount.entries()]
-      .sort((a, b) => b[1] - a[1])
+async function updateLeaderboard(client, staffStats) {
+
+  try {
+
+    const channel = await client.channels.fetch(
+      LEADERBOARD_CHANNEL_ID
+    );
+
+    if (!channel) return;
+
+    const sorted = [...staffStats.entries()]
+      .sort((a, b) => {
+
+        const scoreA =
+          a[1].closed * 30 +
+          a[1].claimed * 20 +
+          Math.floor(a[1].words / 5);
+
+        const scoreB =
+          b[1].closed * 30 +
+          b[1].claimed * 20 +
+          Math.floor(b[1].words / 5);
+
+        return scoreB - scoreA;
+
+      })
       .slice(0, 10);
 
-    const description = sorted.length
-      ? sorted
-          .map((x, i) => {
-            const medal = ["🥇", "🥈", "🥉"][i] || `#${i + 1}`;
-            return `${medal} <@${x[0]}> — **${x[1]} tickets**`;
-          })
-          .join("\n")
-      : "No tickets yet.";
+    let description = "";
 
-    const embed = new EmbedBuilder()
-      .setTitle("🏆 Ticket Leaderboard")
-      .setDescription(description)
-      .setColor("Gold")
-      .setTimestamp();
+    if (!sorted.length) {
 
-    let msg = null;
+      description = "No staff activity yet.";
 
-    if (leaderboardMessageId) {
-      msg = await channel.messages.fetch(leaderboardMessageId).catch(() => null);
-    }
-
-    if (msg) {
-      await msg.edit({ embeds: [embed] });
     } else {
-      msg = await channel.send({ embeds: [embed] });
-      leaderboardMessageId = msg.id;
-      saveLeaderboardMessageId(msg.id);
-    }
-  } catch (err) {
-    console.error("Leaderboard error:", err);
-  }
-}
 
-export { updateLeaderboard, cleanupOldLeaderboards };
+      sorted.forEach
