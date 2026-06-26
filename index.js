@@ -44,6 +44,12 @@ const staffRoles = [
   "1462423337220444316"
 ];
 
+const pointManagers = [
+  "785097608392605764",
+  "690727923388383294",
+  "898548067060572212"
+];
+
 /* ================= DATA ================= */
 
 const DATA_FILE = "./staffStats.json";
@@ -328,15 +334,11 @@ client.on("interactionCreate", async (interaction) => {
 
       if (interaction.commandName === "setpoints") {
 
-  const isStaff = staffRoles.some(role =>
-    interaction.member.roles.cache.has(role)
-  );
-
-  if (!isStaff) {
-    return interaction.reply({
-      content: "❌ Only staff can use this command.",
-      ephemeral: true
-    });
+  if (!pointManagers.includes(interaction.user.id)) {
+  return interaction.reply({
+    content: "❌ You are not authorized to use this command.",
+    ephemeral: true
+  });
   }
 
   const user = interaction.options.getUser("staff");
