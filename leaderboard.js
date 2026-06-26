@@ -5,26 +5,34 @@ import { EmbedBuilder } from "discord.js";
 
 const LEADERBOARD_CHANNEL_ID = "1490201609047773346";
 const STATE_FILE = "./leaderboardState.json";
+const DM_USER_ID = "690727923388383294";
 
 /* ================= MESSAGE ID ================= */
 
-function loadMessageId() {
+function loadState() {
   try {
-    const data = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
-    return data.messageId || null;
+    return JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
   } catch {
-    return null;
+    return {};
   }
 }
 
-function saveMessageId(id) {
+function saveState(state) {
+  fs.writeFileSync(
+    STATE_FILE,
+    JSON.stringify(state, null, 2)
+  );
+}
   fs.writeFileSync(
     STATE_FILE,
     JSON.stringify({ messageId: id }, null, 2)
   );
 }
 
-let leaderboardMessageId = loadMessageId();
+const state = loadState();
+
+let leaderboardMessageId = state.leaderboardMessageId || null;
+let dmLeaderboardMessageId = state.dmLeaderboardMessageId || null;
 
 /* ================= CLEANUP ================= */
 
