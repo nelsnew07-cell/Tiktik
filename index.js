@@ -65,15 +65,21 @@ function getStaff(userId) {
   if (!staffStats.has(userId)) {
 
     staffStats.set(userId, {
-      closed: 0,
-      claimed: 0,
-      words: 0
-    });
-
+  closed: 0,
+  claimed: 0,
+  words: 0,
+  bonus: 0
+});
+    
   }
 
-  return staffStats.get(userId);
+  const staff = staffStats.get(userId);
 
+if (staff.bonus === undefined) {
+  staff.bonus = 0;
+}
+
+return staff;
 }
 
 function saveLeaderboard() {
@@ -107,6 +113,23 @@ const commands = [
     .setDescription("Open the ticket panel")
     .toJSON(),
 
+new SlashCommandBuilder()
+  .setName("setpoints")
+  .setDescription("Set bonus points for a staff member")
+  .addUserOption(option =>
+    option
+      .setName("staff")
+      .setDescription("Staff member")
+      .setRequired(true)
+  )
+  .addIntegerOption(option =>
+    option
+      .setName("points")
+      .setDescription("Bonus points")
+      .setRequired(true)
+  )
+  .toJSON(),
+  
   announceData.toJSON()
 ];
 
@@ -303,6 +326,36 @@ client.on("interactionCreate", async (interaction) => {
         return announceExecute(interaction, staffRoles);
       }
 
+      if (interaction.commandName === "setpoints") {
+
+  const isStaff = staffRoles.some(role =>
+    interaction.member.roles.cache.has(role)
+  );
+
+  if (!isStaff) {
+    return interaction.reply({
+      content: "❌ Only staff can use this command.",
+      ephemeral: true
+    });
+  }
+
+  const user = interaction.options.getUser("staff");
+  const points = interaction.options.getInteger("points");
+
+  const stats = getStaff(user.id);
+
+  stats.bonus = points;
+
+  saveLeaderboard();
+  await updateLeaderboard(client, staffStats);
+
+  return interaction.reply({
+    content: `✅ Set **${user.tag}**'s bonus points to **${points}**.`,
+    ephemeral: true
+  });
+
+}
+      
       if (interaction.commandName === "ticket") {
 
         const embed = new EmbedBuilder()
