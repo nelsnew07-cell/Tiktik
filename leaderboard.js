@@ -83,9 +83,6 @@ const scoreB =
   stats.bonus;
 
           return `**#${index + 1}** <@${id}>
-• Closed: ${stats.closed}
-• Claimed: ${stats.claimed}
-• Words: ${stats.words}
 • Score: **${score}**`;
         })
         .join("\n\n");
