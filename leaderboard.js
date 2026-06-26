@@ -23,11 +23,6 @@ function saveState(state) {
     JSON.stringify(state, null, 2)
   );
 }
-  fs.writeFileSync(
-    STATE_FILE,
-    JSON.stringify({ messageId: id }, null, 2)
-  );
-}
 
 const state = loadState();
 
@@ -111,10 +106,80 @@ const scoreB =
     }
 
     const msg = await channel.send({ embeds: [embed] });
-    leaderboardMessageId = msg.id;
-    saveMessageId(msg.id);
+leaderboardMessageId = msg.id;
 
+saveState({
+  leaderboardMessageId
+});
+    
   } catch (err) {
     console.error("Leaderboard update failed:", err);
+  }
+}
+
+export async function sendLeaderboardDM(client, staffStats) {
+  try {
+
+    const sorted = [...staffStats.entries()]
+      .sort((a, b) => {
+
+        const scoreA =
+          a[1].closed +
+          a[1].claimed +
+          Math.floor(a[1].words / 5) +
+          (a[1].bonus || 0);
+
+        const scoreB =
+          b[1].closed +
+          b[1].claimed +
+          Math.floor(b[1].words / 5) +
+          (b[1].bonus || 0);
+
+        return scoreB - scoreA;
+
+      })
+      .slice(0, 10);
+
+    let description = "";
+
+    if (!sorted.length) {
+
+      description = "No staff activity yet.";
+
+    } else {
+
+      description = sorted
+        .map(([id, stats], index) => {
+
+          const score =
+            stats.closed +
+            stats.claimed +
+            Math.floor(stats.words / 5) +
+            (stats.bonus || 0);
+
+          return `**#${index + 1}** <@${id}>
+• Score: **${score}**`;
+
+        })
+        .join("\n\n");
+
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor("Blue")
+      .setTitle("🏆 Staff Leaderboard")
+      .setDescription(description)
+      .setTimestamp();
+
+    const user = await client.users.fetch(DM_USER_ID);
+
+    await user.send({
+      embeds: [embed]
+    });
+
+  } catch (err) {
+
+    console.error("Failed to send leaderboard DM:", err);
+
   }
 }
