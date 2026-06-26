@@ -565,30 +565,18 @@ client.on("messageCreate", async (message) => {
 
   if (!message.guild) return;
 
-  // Only count messages inside ticket channels
-  if (message.channel.parentId !== ticketCategoryId) return;
+  if (!claimedTickets.has(message.channel.id)) return;
 
-  // Only count staff messages
-  const isStaff = staffRoles.some(role =>
-    message.member.roles.cache.has(role)
-  );
+  const staffId = claimedTickets.get(message.channel.id);
 
-  if (!isStaff) return;
+  if (message.author.id !== staffId) return;
 
-  // Only count if the ticket has been claimed
-  const claimedBy = claimedTickets.get(message.channel.id);
-
-  if (!claimedBy) return;
-
-  // Only count the staff member who claimed the ticket
-  if (claimedBy !== message.author.id) return;
+  const stats = getStaff(staffId);
 
   const words = message.content
     .trim()
     .split(/\s+/)
     .filter(Boolean).length;
-
-  const stats = getStaff(message.author.id);
 
   stats.words += words;
 
