@@ -15,7 +15,8 @@ import fs from "fs";
 
 import {
   updateLeaderboard,
-  cleanupOldLeaderboards
+  cleanupOldLeaderboards,
+  sendLeaderboardDM
 } from "./leaderboard.js";
 
 import {
@@ -179,6 +180,10 @@ client.once("ready", async () => {
 
   }, 5 * 60 * 1000);
 
+  setInterval(async () => {
+  await sendLeaderboardDM(client, staffStats);
+}, 5 * 60 * 1000);
+  
 });
 
 /* ================= CREATE TICKET ================= */
