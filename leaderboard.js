@@ -55,15 +55,16 @@ export async function updateLeaderboard(client, staffStats) {
     const sorted = [...staffStats.entries()]
       .sort((a, b) => {
         const scoreA =
-          a[1].closed * 30 +
-          a[1].claimed * 20 +
-          Math.floor(a[1].words / 5);
+  a[1].closed +
+  a[1].claimed +
+  Math.floor(a[1].words / 5) +
+  (a[1].bonus || 0);
 
-        const scoreB =
-          b[1].closed * 30 +
-          b[1].claimed * 20 +
-          Math.floor(b[1].words / 5);
-
+const scoreB =
+  b[1].closed +
+  b[1].claimed +
+  Math.floor(b[1].words / 5) +
+  (b[1].bonus || 0);
         return scoreB - scoreA;
       })
       .slice(0, 10);
@@ -76,9 +77,10 @@ export async function updateLeaderboard(client, staffStats) {
       description = sorted
         .map(([id, stats], index) => {
           const score =
-            stats.closed * 30 +
-            stats.claimed * 20 +
-            Math.floor(stats.words / 5);
+  stats.closed +
+  stats.claimed +
+  Math.floor(stats.words / 5) +
+  stats.bonus;
 
           return `**#${index + 1}** <@${id}>
 • Closed: ${stats.closed}
